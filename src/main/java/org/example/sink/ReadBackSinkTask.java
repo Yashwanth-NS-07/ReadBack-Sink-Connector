@@ -7,14 +7,16 @@ import java.util.Collection;
 import java.util.Map;
 
 public class ReadBackSinkTask extends SinkTask {
+
+    ReadBackSinkConfig config;
     @Override
     public String version() {
         return "";
     }
 
     @Override
-    public void start(Map<String, String> map) {
-
+    public void start(Map<String, String> props) {
+        config = new ReadBackSinkConfig(props);
     }
 
     @Override
