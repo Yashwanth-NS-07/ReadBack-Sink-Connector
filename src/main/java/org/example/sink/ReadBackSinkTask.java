@@ -3,6 +3,8 @@ package org.example.sink;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
+import io.confluent.connect.jdbc.dialect.DatabaseDialect;
+import io.confluent.connect.jdbc.dialect.DatabaseDialects;
 
 import java.util.Collection;
 import java.util.Map;
@@ -10,6 +12,7 @@ import java.util.Map;
 public class ReadBackSinkTask extends SinkTask {
 
     //ErrantRecordReporter reporter; in future
+    DatabaseDialect dialect;
     ReadBackSinkConfig config;
     int remainingRetries;
     boolean shouldTrimSensitiveLogs = true;
@@ -26,13 +29,15 @@ public class ReadBackSinkTask extends SinkTask {
         remainingRetries = config.maxRetries;
         /* in future
         try {
-            reporter = context.errantRecordReporter();
+            reporter = context.errantRecordReporter();// helps with DLQ
         } catch (Exception e) {
             reporter = null; // for kafka version less than 2.6
         }*/
     }
     void intiwriter() {
-
+        if(config.dialectName != null && !config.dialectName.trim().isEmpty()) {
+            dialect = DatabaseDialects.create(config.dialectName, config);
+        }
     }
 
     @Override

@@ -1,5 +1,10 @@
 package org.example.sink;
 
+import io.confluent.connect.jdbc.sink.JdbcSinkConfig;
+import io.confluent.connect.jdbc.source.JdbcSourceConnectorConfig;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
+
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
@@ -8,102 +13,75 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import org.slf4j.Logger;
 
 public class ReadBackSinkConfig {
 
-    public enum InsertMode {
-        INSERT,
-        UPSERT,
-        UPDATE;
-    }
-    public enum PrimaryKeyMode {
-        NONE,
-        //KAFKA, in future
-        RECORD_KEY,
-        RECORD_VALUE;
-    }
-    public enum DateTimezone {
-        DB_TIMEZONE,
-        UTC
-    }
-    // core jdbc sink config
-    public final String connectorName;
-    public final String connectionUrl;
-    public final String connectionUser;
-    public final String connectionPassword;
-    public final int connectionAttempts;
-    public final long connectionBackoffMs;
-    public final String tableNameFormat;
-    public final int batchSize;
-    public final int maxRetries;
-    public final int retryBackoffMs;
-    public final InsertMode insertMode;
-    public final PrimaryKeyMode pkMode;
-    public final List<String> pkFields;
-    public final Set<String> fieldsWhitelist;
-    public final String dialectName;
-    public final TimeZone timeZone;
-    public final TimeZone dateTimeZone;
-    /* in future
-    public final boolean deleteEnabled;
-    public final boolean replaceNullWithDefault;
-    public final boolean autoCreate;
-    public final boolean autoEvolve; */
+    JdbcSinkConfig jdbcSinkConfig;
+    ConfigDef CONFIG_DEF;
+
+    private static final String SOURCE_CONNECTION = "source.connection";
+
+    public static final String SOURCE_CONNECTION_URL = SOURCE_CONNECTION + ".url";
+    private static final String SOURCE_CONNECTION_URL_DOC =
+            "JDBC connection URL.\n"
+                    + "For example: ``jdbc:oracle:thin:@localhost:1521:orclpdb1``, "
+                    + "``jdbc:mysql://localhost/db_name``, "
+                    + "``jdbc:sqlserver://localhost;instance=SQLEXPRESS;"
+                    + "databaseName=db_name``";
+    private static final String SOURCE_CONNECTION_URL_DISPLAY = "JDBC URL";
+
+    public static final String SOURCE_CONNECTION_USER = SOURCE_CONNECTION + ".user";
+    private static final String SOURCE_CONNECTION_USER_DOC = "JDBC connection user.";
+    private static final String SOURCE_CONNECTION_USER_DISPLAY = "JDBC User";
+
+    public static final String SOURCE_CONNECTION_PASSWORD = SOURCE_CONNECTION + ".password";
+    private static final String SOURCE_CONNECTION_PASSWORD_DOC = "JDBC connection password.";
+    private static final String SOURCE_CONNECTION_PASSWORD_DISPLAY = "JDBC Password";
+
+    public static final String SOURCE_CONNECTION_ATTEMPTS = SOURCE_CONNECTION + ".attempts";
+    private static final String SOURCE_CONNECTION_ATTEMPTS_DOC =
+            JdbcSourceConnectorConfig.CONNECTION_ATTEMPTS_DOC;
+    private static final String SOURCE_CONNECTION_ATTEMPTS_DISPLAY =
+            JdbcSourceConnectorConfig.CONNECTION_ATTEMPTS_DISPLAY;
+    public static final int SOURCE_CONNECTION_ATTEMPTS_DEFAULT =
+            JdbcSourceConnectorConfig.CONNECTION_ATTEMPTS_DEFAULT;
+
+    public static final String SOURCE_CONNECTION_BACKOFF = SOURCE_CONNECTION + ".backoff.ms";
+    private static final String SOURCE_CONNECTION_BACKOFF_DOC =
+            JdbcSourceConnectorConfig.CONNECTION_BACKOFF_DOC;
+    private static final String SOURCE_CONNECTION_BACKOFF_DISPLAY =
+            JdbcSourceConnectorConfig.CONNECTION_BACKOFF_DISPLAY;
+    public static final long SOURCE_CONNECTION_BACKOFF_DEFAULT =
+            JdbcSourceConnectorConfig.CONNECTION_BACKOFF_DEFAULT;
+
+    public static final String SOURCE_TABLE_NAME_FORMAT = "source.table.name.format";
+    private static final String SOURCE_TABLE_NAME_FORMAT_DEFAULT = "${topic}";
+    private static final String SOURCE_TABLE_NAME_FORMAT_DOC =
+            "A format string for the destination table name, which may contain '${topic}' as a "
+                    + "placeholder for the originating topic name.\n"
+                    + "For example, ``kafka_${topic}`` for the topic 'orders' will map to the table name "
+                    + "'kafka_orders'.";
+    private static final String SOURCE_TABLE_NAME_FORMAT_DISPLAY = "Table Name Format";
+
+    public static final String SOURCE_MAX_RETRIES = "source.max.retries";
+    private static final int SOURCE_MAX_RETRIES_DEFAULT = 5;
+    private static final String SOURCE_MAX_RETRIES_DOC =
+            "The maximum number of times to retry on errors before failing the task.";
+    private static final String SOURCE_MAX_RETRIES_DISPLAY = "Maximum Retries";
+
+    public static final String SOURCE_RETRY_BACKOFF_MS = "source.retry.backoff.ms";
+    private static final int SOURCE_RETRY_BACKOFF_MS_DEFAULT = 3000;
+    private static final String SOURCE_RETRY_BACKOFF_MS_DOC =
+            "The time in milliseconds to wait following an error before a retry attempt is made.";
+    private static final String SOURCE_RETRY_BACKOFF_MS_DISPLAY = "Retry Backoff (millis)";
 
     public ReadBackSinkConfig(Map<?, ?> props) {
-        /* may be in future
-        super(CONFIG_DEF, props); */
-        this.connectorName = (String)props.get("name");
-        this.connectionUrl = (String)props.get("connection.url");
-        this.connectionUser = (String)props.get("connection.user");
-        this.connectionPassword = (String)props.get("connection.password");
-        this.connectionAttempts = Integer.parseInt((String)(props.containsKey("connection.attempts")
-                ? props.get("connection.attempts")
-                : "3"));
-        this.connectionBackoffMs = Long.parseLong((String)(props.containsKey("connection.backoff.ms")
-                ? props.get("connection.backoff.ms")
-                : "10000"));
-        this.tableNameFormat = (String)(props.containsKey("table.name.format")
-                ? props.get("table.name.format")
-                : "${topic}");
-        this.batchSize = Integer.parseInt((String)(props.containsKey("batch.size")
-                ? props.get("batch.size")
-                : "3000"));
-        this.maxRetries = Integer.parseInt((String) (props.containsKey("max.retries")
-                ? props.get("max.retries")
-                : "10"));
-        this.retryBackoffMs = Integer.parseInt((String) (props.containsKey("retry.backoff.ms")
-                ? props.get("retry.backoff.ms")
-                : "10"));
-        this.insertMode = InsertMode.valueOf(((String)(props.containsKey("insert.mode")
-                ? props.get("insert.mode")
-                : "insert")).toUpperCase());
-        this.pkMode = PrimaryKeyMode.valueOf(((String)(props.containsKey("pk.mode")
-                ? props.get("pk.mode")
-                : "none")).toUpperCase());
-        this.pkFields = Arrays.asList(
-                ((String)(props.containsKey("pk.fields")
-                        ? props.get("pk.fields")
-                        : "")).split(",")
-        );
-        this.fieldsWhitelist = new HashSet<>(
-                Arrays.asList(((String)(props.containsKey("fields.whitelist")
-                    ? props.get("fields.whitelist")
-                    : "")).split(","))
-        );
-        this.dialectName = (String)(props.containsKey("dialect.name")
-                ? props.get("dialect.name")
-                : "");
-        String dbTimeZone = (String)(props.containsKey("db.timezone")
-                ? props.get("db.timezone")
-                : "UTC");
-        timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
-        DateTimezone dateTimezoneConfig =
-                DateTimezone.valueOf(((String) (props.containsKey("date.timezone")
-                        ? props.get("date.timezone")
-                        : DateTimezone.DB_TIMEZONE.toString())).toUpperCase());
-        dateTimeZone = dateTimezoneConfig.equals(DateTimezone.UTC)
-                ? TimeZone.getTimeZone(ZoneOffset.UTC) : timeZone;
+        this(props, JdbcSinkConfig.CONFIG_DEF);
+        jdbcSinkConfig = new JdbcSinkConfig(props);
+    }
+    public ReadBackSinkConfig(Map<?, ?> props, ConfigDef sinkConfigDef) {
+
     }
 
 }
