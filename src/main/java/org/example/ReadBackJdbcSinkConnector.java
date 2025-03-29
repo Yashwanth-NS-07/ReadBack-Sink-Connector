@@ -2,11 +2,12 @@ package org.example;
 
 import com.sun.org.slf4j.internal.Logger;
 import com.sun.org.slf4j.internal.LoggerFactory;
+import io.confluent.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
+import org.example.sink.ReadBackSinkConfigDisplay;
 import org.example.sink.ReadBackSinkTask;
-import sun.java2d.marlin.Version;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public class ReadBackJdbcSinkConnector extends SinkConnector
 
     @Override
     public ConfigDef config() {
-        return null;
+        return ReadBackSinkConfigDisplay.addConfigDef(JdbcSinkConfig.CONFIG_DEF);
     }
 
     @Override
