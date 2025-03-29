@@ -7,6 +7,8 @@ import io.confluent.connect.jdbc.util.JdbcCredentialsProviderValidator;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 
 public class ReadBackSinkConfig extends AbstractConfig {
@@ -67,6 +69,18 @@ public class ReadBackSinkConfig extends AbstractConfig {
                     + "'kafka_orders'.";
     private static final String TABLE_NAME_FORMAT_DISPLAY = "Table Name Format";
 
+    public static final String SOURCE_COLUMN_NAME = "column.name";
+    private static final String SOURCE_COLUMN_NAME_DEFAULT = null;
+    private static final String SOURCE_COLUMN_NAME_DOC =
+            "Readback table column name, string data type is recommended";
+    private static final String SOURCE_COLUMN_NAME_DISPLAY = "Source Column Name";
+
+    public static final String SOURCE_DATA_FLOWN_STATUS = "data.flown.status";
+    private static final String SOURCE_DATA_FLOWN_STATUS_DEFAULT = "Y";
+    private static final String SOURCE_DATA_FLOWN_STATUS_DOC =
+            "Hard coded value for readback indiction at source database";
+    private static final String SOURCE_DATA_FLOWN_STATUS_DISPLAY = "Data Flown Status";
+
     public static final String MAX_RETRIES = "max.retries";
     private static final int MAX_RETRIES_DEFAULT = 5;
     private static final String MAX_RETRIES_DOC =
@@ -79,15 +93,6 @@ public class ReadBackSinkConfig extends AbstractConfig {
             "The time in milliseconds to wait following an error before a retry attempt is made.";
     private static final String RETRY_BACKOFF_MS_DISPLAY = "Retry Backoff (millis)";
 
-    public static final String BATCH_SIZE = "batch.size";
-    private static final int BATCH_SIZE_DEFAULT = 3000;
-    private static final String BATCH_SIZE_DOC =
-            "Specifies how many records to attempt to batch together for insertion into the destination"
-                    + " table, when possible.";
-    private static final String BATCH_SIZE_DISPLAY = "Batch Size";
-
-    public static final String CREDENTIALS_PROVIDER_CONFIG_PREFIX =
-            JdbcSourceConnectorConfig.CREDENTIALS_PROVIDER_CONFIG_PREFIX;
     public static final String CREDENTIALS_PROVIDER_CLASS_CONFIG =
             JdbcSourceConnectorConfig.CREDENTIALS_PROVIDER_CLASS_CONFIG;
     public static final Class<? extends JdbcCredentialsProvider> CREDENTIALS_PROVIDER_CLASS_DEFAULT =
@@ -101,9 +106,11 @@ public class ReadBackSinkConfig extends AbstractConfig {
 
 
     private static final String CONNECTION_GROUP = "Connection";
+    private static final String DATAMAPPING_GROUP = "Data Mapping";
+    private static final String RETRIES_GROUP = "Retries";
 
     public static final ConfigDef CONFIG_DEF = new ConfigDef()
-            .define(
+        .define(
             CONNECTION_URL,
             ConfigDef.Type.STRING,
             ConfigDef.NO_DEFAULT_VALUE,
@@ -146,7 +153,7 @@ public class ReadBackSinkConfig extends AbstractConfig {
             4,
             ConfigDef.Width.LONG,
             CREDENTIALS_PROVIDER_CLASS_DISPLAY
-      ).define(
+        ).define(
             DIALECT_NAME_CONFIG,
             ConfigDef.Type.STRING,
             DIALECT_NAME_DEFAULT,
@@ -180,6 +187,57 @@ public class ReadBackSinkConfig extends AbstractConfig {
             7,
             ConfigDef.Width.SHORT,
             CONNECTION_BACKOFF_DISPLAY
+        )
+        // data mapping
+        .define(
+            TABLE_NAME_FORMAT,
+            ConfigDef.Type.STRING,
+            TABLE_NAME_FORMAT_DEFAULT,
+            new ConfigDef.NonEmptyString(),
+            ConfigDef.Importance.MEDIUM,
+            TABLE_NAME_FORMAT_DOC,
+            DATAMAPPING_GROUP,
+            1,
+            ConfigDef.Width.LONG,
+            TABLE_NAME_FORMAT_DISPLAY,
+            Arrays.asList(SOURCE_COLUMN_NAME, SOURCE_DATA_FLOWN_STATUS)
+        )
+        .define(
+            SOURCE_COLUMN_NAME,
+            ConfigDef.Type.STRING,
+            SOURCE_COLUMN_NAME,
+            new ConfigDef.NonEmptyString(),
+            ConfigDef.Importance.HIGH,
+            SOURCE_COLUMN_NAME_DOC,
+            DATAMAPPING_GROUP,
+            2,
+            ConfigDef.Width.MEDIUM,
+            SOURCE_COLUMN_NAME_DISPLAY
+        )
+        // Retries
+        .define(
+            MAX_RETRIES,
+            ConfigDef.Type.INT,
+            MAX_RETRIES_DEFAULT,
+            ConfigDef.Range.atLeast(0),
+            ConfigDef.Importance.MEDIUM,
+            MAX_RETRIES_DOC,
+            RETRIES_GROUP,
+            1,
+            ConfigDef.Width.SHORT,
+            MAX_RETRIES_DISPLAY
+        )
+        .define(
+            RETRY_BACKOFF_MS,
+            ConfigDef.Type.INT,
+            RETRY_BACKOFF_MS_DEFAULT,
+            ConfigDef.Range.atLeast(0),
+            ConfigDef.Importance.MEDIUM,
+            RETRY_BACKOFF_MS_DOC,
+            RETRIES_GROUP,
+            2,
+            ConfigDef.Width.SHORT,
+            RETRY_BACKOFF_MS_DISPLAY
         );
 
     public ReadBackSinkConfig(Map<?, ?> props) {

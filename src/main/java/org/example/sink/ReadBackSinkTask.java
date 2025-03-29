@@ -14,8 +14,8 @@ public class ReadBackSinkTask extends SinkTask {
 
     //ErrantRecordReporter reporter; in future
     DatabaseDialect dialect;
-    ReadBackSinkConfig readBackSinkconfig;
-    JdbcSinkConfig config;
+    ReadBackSinkConfig sourceConfig;
+    JdbcSinkConfig sinkConfig;
     int remainingRetries;
     boolean shouldTrimSensitiveLogs = true;
 
@@ -26,10 +26,10 @@ public class ReadBackSinkTask extends SinkTask {
 
     @Override
     public void start(Map<String, String> props) {
-        readBackSinkconfig = new ReadBackSinkConfig(parse(props));
-        config = new JdbcSinkConfig(props);
+        sourceConfig = new ReadBackSinkConfig(parse(props));
+        sinkConfig = new JdbcSinkConfig(props);
         intiwriter();
-        remainingRetries = config.maxRetries;
+        remainingRetries = sinkConfig.maxRetries;
         /* in future
         try {
             reporter = context.errantRecordReporter();// helps with DLQ
@@ -39,8 +39,8 @@ public class ReadBackSinkTask extends SinkTask {
     }
 
     void intiwriter() {
-        if(config.dialectName != null && !config.dialectName.trim().isEmpty()) {
-            dialect = DatabaseDialects.create(config.dialectName, config);
+        if(sinkConfig.dialectName != null && !sinkConfig.dialectName.trim().isEmpty()) {
+            dialect = DatabaseDialects.create(sinkConfig.dialectName, sinkConfig);
         }
     }
 
